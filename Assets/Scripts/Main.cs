@@ -5,12 +5,19 @@ using Assets.Scripts.Types;
 using Assets.Scripts.Networking;
 using Assets.Scripts.ExtensionClasses;
 
-public class Main : MonoBehaviour
+public class Main : MonoBehaviourSingleton
 {
+    public static new Main Instance
+    {
+        get { return GetInstance<Main>(); }
+    }
+
     [SerializeField]
     private string m_COMPortName = string.Empty;
     [SerializeField]
-    private int m_BaudRate = 9600;
+    private SerialPortSettings m_Settings = SerialPortSettings.Default; // Baud rates: 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200
+    [SerializeField]
+    private int m_UpdateInterval = 0;
 
     [SerializeField]
     private float m_Scale = 1f;
@@ -18,17 +25,40 @@ public class Main : MonoBehaviour
     private const int ContentCapacity = 360 * 10;
 
     [SerializeField, ReadOnlyProperty]
+    private OrientationData m_Orientation;
+    [SerializeField, ReadOnlyProperty]
     private List<ProximityData> m_ProximityContent = new List<ProximityData>(ContentCapacity);
 
-    private readonly object m_ContentLock = new object();
+    public OrientationData Orientation
+    {
+        get
+        {
+            lock(m_OrientationLock)
+            {
+                return m_Orientation;
+            }
+        }
+
+        set
+        {
+            lock(m_OrientationLock)
+            {
+                m_Orientation = value;
+            }
+        }
+    }
+
+    private readonly object m_OrientationLock = new object();
+    private readonly object m_ProximityContentLock = new object();
     private unsafe void PacketReceived(Packet.Header* header)
     {
         switch(header->Type)
         {
             case (byte)CustomPackets.Type.OrientationData:
             {
-                OrientationData data = *((CustomPackets.OrientationDataPacket*)header);
-                DebugTools.Print($"DATA: {data}");
+                Orientation = *((CustomPackets.OrientationDataPacket*)header);
+
+                DebugTools.Print($"DATA: {Orientation}");
                 break;
             }
 
@@ -38,7 +68,7 @@ public class Main : MonoBehaviour
                 DebugTools.Print($"DATA: {data}");
 
                 int count;
-                lock(m_ContentLock)
+                lock(m_ProximityContentLock)
                 {
                     count = m_ProximityContent.Count;
                 }
@@ -46,13 +76,13 @@ public class Main : MonoBehaviour
                 int cap = ContentCapacity - 1;
                 for(; count-- > cap;)
                 {
-                    lock(m_ContentLock)
+                    lock(m_ProximityContentLock)
                     {
                         m_ProximityContent.RemoveAt(0);
                     }
                 }
 
-                lock(m_ContentLock)
+                lock(m_ProximityContentLock)
                 {
                     m_ProximityContent.Add(data);
                 }
@@ -68,12 +98,9 @@ public class Main : MonoBehaviour
         }
     }
 
-    private void Start()
+    protected override void Awake()
     {
-        // 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200
-        SerialPortSettings settings = SerialPortSettings.Default;
-        settings.BaudRate = m_BaudRate;
-        settings.LoopDelay = 50;
+        base.Awake();
 
         unsafe
         {
@@ -82,12 +109,17 @@ public class Main : MonoBehaviour
 
         //SerialReceiver.OnUpdate += RevolutionUpdate;
         //SerialReceiver.OnUpdate += OscillationUpdate;
-        SerialReceiver.Begin(m_COMPortName, settings);
     }
 
-    private void OnDestroy()
+    private void Start()
+    {
+        SerialReceiver.Begin(m_COMPortName, m_Settings, m_UpdateInterval);
+    }
+
+    protected override void OnDestroy()
     {
         SerialReceiver.End();
+        base.OnDestroy();
     }
 
     ProximityData m_Origin;
