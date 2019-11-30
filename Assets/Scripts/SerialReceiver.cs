@@ -1,11 +1,10 @@
 ﻿using System;
+using System.Text;
 using System.IO.Ports;
 using System.Threading;
 using System.Runtime.InteropServices;
 using Assets.Scripts.Networking;
-using Assets.Scripts.Types;
 using Assets.Scripts.Cryptography.CRC;
-using System.Text;
 
 public static class SerialReceiver
 {
@@ -58,9 +57,8 @@ public static class SerialReceiver
 
     private static readonly object s_SerialPortLock = new object();
     private static readonly object s_IsActiveLock = new object();
-    private static readonly object s_DataLock = new object();
-    private static readonly object s_StatsLock = new object();
-    private static ProximityData s_Data;
+    private static readonly object s_PacketSuccessCountLock = new object();
+    private static readonly object s_PacketFailCountLock = new object();
 
     private static byte[] s_ReadBuffer = new byte[512];
 
@@ -71,7 +69,7 @@ public static class SerialReceiver
     {
         get
         {
-            lock(s_StatsLock)
+            lock(s_PacketSuccessCountLock)
             {
                 return m_PacketSuccessCount;
             }
@@ -79,7 +77,7 @@ public static class SerialReceiver
 
         set
         {
-            lock(s_StatsLock)
+            lock(s_PacketSuccessCountLock)
             {
                 m_PacketSuccessCount = value;
             }
@@ -90,7 +88,7 @@ public static class SerialReceiver
     {
         get
         {
-            lock(s_StatsLock)
+            lock(s_PacketFailCountLock)
             {
                 return m_PacketFailCount;
             }
@@ -98,7 +96,7 @@ public static class SerialReceiver
 
         set
         {
-            lock(s_StatsLock)
+            lock(s_PacketFailCountLock)
             {
                 m_PacketFailCount = value;
             }
@@ -118,25 +116,6 @@ public static class SerialReceiver
     public static float PacketFailRatio
     {
         get { return (float)PacketFailCount / (float)PacketTotalCount; }
-    }
-
-    public static ProximityData Data
-    {
-        get
-        {
-            lock(s_DataLock)
-            {
-                return s_Data;
-            }
-        }
-
-        private set
-        {
-            lock(s_DataLock)
-            {
-                s_Data = value;
-            }
-        }
     }
 
     public static void Begin(string portName, int updateInterval = 0)
@@ -187,10 +166,6 @@ public static class SerialReceiver
         }
     }
 
-    /*private static void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
-    {
-    }*/
-
     private static unsafe string ToHexString(byte* offset, int count)
     {
         StringBuilder sb = new StringBuilder();
@@ -235,6 +210,10 @@ public static class SerialReceiver
         return true;
     }
 
+    /*private static void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
+    {
+    }*/
+
     private static int s_ReadOffset = 0;
     private static void Poll()
     {
@@ -242,7 +221,7 @@ public static class SerialReceiver
         {
             try
             {
-                if(SerialPort.BytesToRead < 128)
+                if(SerialPort.BytesToRead <= 0 || SerialPort.BytesToRead < s_Settings.ReceivedBytesThreshold/*SerialPort.ReceivedBytesThreshold*/)
                     continue;
 
                 int indexOffset = 0;
