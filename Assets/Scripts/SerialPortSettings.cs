@@ -14,7 +14,7 @@ public struct SerialPortSettings
         Handshake = Handshake.None,
         RTSEnable = false,
         DTREnable = false,
-        ReceiveThreshold = 1,
+        ReceivedBytesThreshold = 1,
         ReadTimeout = SerialPort.InfiniteTimeout,
         WriteTimeout = SerialPort.InfiniteTimeout
     };
@@ -34,7 +34,7 @@ public struct SerialPortSettings
     [SerializeField]
     private bool m_DTREnable;
     [SerializeField]
-    private int m_ReceiveThreshold;
+    private int m_ReceivedBytesThreshold;
     [SerializeField]
     private int m_ReadTimeout;
     [SerializeField]
@@ -82,10 +82,10 @@ public struct SerialPortSettings
         set { m_DTREnable = value; }
     }
 
-    public int ReceiveThreshold
+    public int ReceivedBytesThreshold
     {
-        get { return m_ReceiveThreshold; }
-        set { m_ReceiveThreshold = value; }
+        get { return m_ReceivedBytesThreshold; }
+        set { m_ReceivedBytesThreshold = value; }
     }
 
     public int ReadTimeout
