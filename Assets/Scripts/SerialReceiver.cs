@@ -54,6 +54,7 @@ public static class SerialReceiver
     }
 
     private static SerialPortSettings s_Settings;
+    private static int m_UpdateInterval;
 
     private static readonly object s_SerialPortLock = new object();
     private static readonly object s_IsActiveLock = new object();
@@ -138,12 +139,12 @@ public static class SerialReceiver
         }
     }
 
-    public static void Begin(string portName)
+    public static void Begin(string portName, int updateInterval = 0)
     {
-        Begin(portName, SerialPortSettings.Default);
+        Begin(portName, SerialPortSettings.Default, updateInterval);
     }
 
-    public static void Begin(string portName, SerialPortSettings settings)
+    public static void Begin(string portName, SerialPortSettings settings, int updateInterval = 0)
     {
         s_ReceivingThread = new Thread(Poll);
 
@@ -154,17 +155,18 @@ public static class SerialReceiver
         SerialPort.PortName = portName;
         SerialPort.BaudRate = s_Settings.BaudRate;
         SerialPort.Parity = s_Settings.Parity;
-        SerialPort.DataBits = s_Settings.DataBitSize;
-        SerialPort.StopBits = s_Settings.StopBitCount;
-        SerialPort.Handshake = s_Settings.HandshakeMode;
-        //SerialPort.RtsEnable = true;//*
-        //SerialPort.DtrEnable = true;//*
-        //SerialPort.ReceivedBytesThreshold = Marshal.SizeOf<Packet.Header>();//*
-
+        SerialPort.DataBits = s_Settings.DataBits;
+        SerialPort.StopBits = s_Settings.StopBits;
+        SerialPort.Handshake = s_Settings.Handshake;
+        SerialPort.RtsEnable = s_Settings.RTSEnable;
+        SerialPort.DtrEnable = s_Settings.DTREnable;
+        //SerialPort.ReceivedBytesThreshold = s_Settings.ReceiveThreshold;//*
         SerialPort.ReadTimeout = s_Settings.ReadTimeout;
         SerialPort.WriteTimeout = s_Settings.WriteTimeout;
 
         //SerialPort.DataReceived += new SerialDataReceivedEventHandler(OnDataReceived);//*
+
+        m_UpdateInterval = updateInterval;
 
         IsActive = true;
         SerialPort.Open();
@@ -286,6 +288,8 @@ public static class SerialReceiver
                 DebugTools.Print("BUFFER END");
             }
             catch(TimeoutException) { }
+
+            Thread.Sleep(m_UpdateInterval);
         }
     }
 }
