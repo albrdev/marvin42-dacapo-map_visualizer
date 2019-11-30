@@ -1,38 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.IO.Ports;
 using System.Threading;
 using System.Runtime.InteropServices;
 using Assets.Scripts.Networking;
-using Assets.Scripts.ExtensionClasses;
 using Assets.Scripts.Types;
 using Assets.Scripts.Cryptography.CRC;
 using System.Text;
-
-public struct SerialPortSettings
-{
-    public static readonly SerialPortSettings Default = new SerialPortSettings
-    {
-        BaudRate = 9600,
-        Parity = Parity.None,
-        DataBitSize = 8,
-        StopBitCount = StopBits.One,
-        HandshakeMode = Handshake.None,
-        ReadTimeout = 500,
-        WriteTimeout = 500,
-        LoopDelay = 100
-    };
-
-    public int BaudRate { get; set; }
-    public Parity Parity { get; set; }
-    public int DataBitSize { get; set; }
-    public StopBits StopBitCount { get; set; }
-    public Handshake HandshakeMode { get; set; }
-    public int ReadTimeout { get; set; }
-    public int WriteTimeout { get; set; }
-    public int LoopDelay { get; set; }
-}
 
 public static class SerialReceiver
 {
@@ -43,9 +16,6 @@ public static class SerialReceiver
     private static SerialPort s_SerialPort;
     private static Thread s_ReceivingThread;
     private static bool s_IsActive = false;
-
-    public static int PacketSuccessCount { get; private set; } = 0;
-    public static int PacketFailCount { get; private set; } = 0;
 
     public static SerialPort SerialPort
     {
@@ -88,9 +58,66 @@ public static class SerialReceiver
     private static readonly object s_SerialPortLock = new object();
     private static readonly object s_IsActiveLock = new object();
     private static readonly object s_DataLock = new object();
+    private static readonly object s_StatsLock = new object();
     private static ProximityData s_Data;
 
     private static byte[] s_ReadBuffer = new byte[512];
+
+    private static int m_PacketSuccessCount = 0;
+    private static int m_PacketFailCount = 0;
+
+    public static int PacketSuccessCount
+    {
+        get
+        {
+            lock(s_StatsLock)
+            {
+                return m_PacketSuccessCount;
+            }
+        }
+
+        set
+        {
+            lock(s_StatsLock)
+            {
+                m_PacketSuccessCount = value;
+            }
+        }
+    }
+
+    public static int PacketFailCount
+    {
+        get
+        {
+            lock(s_StatsLock)
+            {
+                return m_PacketFailCount;
+            }
+        }
+
+        set
+        {
+            lock(s_StatsLock)
+            {
+                m_PacketFailCount = value;
+            }
+        }
+    }
+
+    public static int PacketTotalCount
+    {
+        get { return PacketSuccessCount + PacketFailCount; }
+    }
+
+    public static float PacketSuccessRatio
+    {
+        get { return (float)PacketSuccessCount / (float)PacketTotalCount; }
+    }
+
+    public static float PacketFailRatio
+    {
+        get { return (float)PacketFailCount / (float)PacketTotalCount; }
+    }
 
     public static ProximityData Data
     {
@@ -242,7 +269,12 @@ public static class SerialReceiver
                 if(increment < 0)
                 {
                     DebugTools.Print("BUFFER ERROR\n");
+                    PacketFailCount++;
                     continue;
+                }
+                else
+                {
+                    PacketSuccessCount++;
                 }
 
                 s_ReadOffset = readSize - indexOffset;
