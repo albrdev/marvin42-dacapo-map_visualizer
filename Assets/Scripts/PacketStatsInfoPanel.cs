@@ -1,7 +1,6 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.UI;
-using Assets.Scripts.ExtensionClasses;
 
 public class PacketStatsInfoPanel : InfoPanelBase
 {
@@ -30,7 +29,7 @@ public class PacketStatsInfoPanel : InfoPanelBase
         m_TotalCountValue.text = SerialReceiver.PacketTotalCount.ToString();
         m_SuccessCountValue.text = SerialReceiver.PacketSuccessCount.ToString();
         m_FailCountValue.text = SerialReceiver.PacketFailCount.ToString();
-        m_SuccessRatioValue.text = SerialReceiver.PacketSuccessRatio.ToPercentage().ToString("n2") + "%";
-        m_FailRatioValue.text = SerialReceiver.PacketSuccessRatio.ToPercentage().ToString("n2") + "%";
+        m_SuccessRatioValue.text = (SerialReceiver.PacketSuccessRatio * 100f).ToString("n2") + "%";
+        m_FailRatioValue.text = (SerialReceiver.PacketSuccessRatio * 100f).ToString("n2") + "%";
     }
 }
