@@ -230,10 +230,11 @@ public static class SerialReceiver
     private static unsafe bool HandlePacket(byte* offset, byte* end, out int increment)
     {
         Packet.Header* header = (Packet.Header*)offset;
+        increment = -1;
+
         UInt16 checksum = CRC16.Generate(offset + Marshal.SizeOf(header->HeaderChecksum), Marshal.SizeOf(*header) - Marshal.SizeOf(header->HeaderChecksum));
         DebugTools.Print($"Header: HeaderChecksum={header->HeaderChecksum.ToString("X4")}, DataChecksum={header->DataChecksum.ToString("X4")}, Type={header->Type}, Size={header->Size} (Checksum={checksum.ToString("X4")}, Hex={ToHexString(offset, Marshal.SizeOf(*header))})");
 
-        increment = -1;
         if(!Packet.VerifyHeader(header))
         {
             DebugTools.Print($"Header checksum failed: {header->HeaderChecksum.ToString("X4")} / {checksum.ToString("X4")}");
