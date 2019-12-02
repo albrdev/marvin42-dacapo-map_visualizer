@@ -275,12 +275,12 @@ public static class SerialReceiver
                 if(SerialPort.BytesToRead <= 0 || SerialPort.BytesToRead < Settings.ReceivedBytesThreshold/*SerialPort.ReceivedBytesThreshold*/)
                     continue;
 
-                int indexOffset = 0;
                 int readSize = SerialPort.Read(s_ReadBuffer, s_ReadOffset, s_ReadBuffer.Length - s_ReadOffset);
                 readSize += s_ReadOffset;
                 s_ReadOffset = 0;
 
                 DebugTools.Print("BUFFER BEGIN");
+                int indexOffset = 0;
                 int increment = 0;
                 while(indexOffset + Marshal.SizeOf<Packet.Header>() <= readSize)
                 {
