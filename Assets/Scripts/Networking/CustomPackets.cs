@@ -76,11 +76,13 @@ namespace Assets.Scripts.Networking
         {
             public Packet.Header Header { get; private set; }
 
+            public Byte ID { get; }
             public UInt32 Distance { get; }
             public UInt32 Angle { get; }
 
-            public unsafe ProximityDataPacket(UInt32 distance, UInt32 angle) : this()
+            public unsafe ProximityDataPacket(Byte id, UInt32 distance, UInt32 angle) : this()
             {
+                ID = id;
                 Distance = distance;
                 Angle = angle;
 

@@ -63,9 +63,17 @@ namespace Assets.Scripts.Types
     public struct ProximityData
     {
         [SerializeField, ReadOnlyProperty]
+        private byte m_ID;
+        [SerializeField, ReadOnlyProperty]
         private float m_Distance;
         [SerializeField, ReadOnlyProperty]
         private float m_Angle;
+
+        public byte ID
+        {
+            get { return m_ID; }
+            private set { m_ID = value; }
+        }
 
         public float Distance
         {
@@ -101,17 +109,19 @@ namespace Assets.Scripts.Types
 
         public override string ToString()
         {
-            return string.Format("{0}({1}, {2})", nameof(ProximityData), Distance, Angle);
+            return string.Format("{0}({1}, {2}, {3})", nameof(ProximityData), ID, Distance, Angle);
         }
 
         public ProximityData(CustomPackets.ProximityDataPacket value) : this()
         {
+            ID = value.ID;
             Distance = System.BitConverter.ToSingle(BitConverter.GetBytes(value.Distance), 0);
             Angle = System.BitConverter.ToSingle(BitConverter.GetBytes(value.Angle), 0);
         }
 
-        public ProximityData(float distance, float angle) : this()
+        public ProximityData(byte id, float distance, float angle) : this()
         {
+            ID = id;
             Distance = distance;
             Angle = angle;
         }
