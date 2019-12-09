@@ -29,6 +29,17 @@ public class Main : MonoBehaviourSingleton
     [SerializeField, ReadOnlyProperty]
     private List<ProximityData> m_ProximityContent = new List<ProximityData>(ContentCapacity);
 
+    private IList<ProximityData> ProximityContent
+    {
+        get
+        {
+            lock(m_ProximityContentLock)
+            {
+                return m_ProximityContent;
+            }
+        }
+    }
+
     public OrientationData Orientation
     {
         get
@@ -67,25 +78,14 @@ public class Main : MonoBehaviourSingleton
                 ProximityData data = *((CustomPackets.ProximityDataPacket*)header);
                 DebugTools.Print($"DATA: {data}");
 
-                int count;
-                lock(m_ProximityContentLock)
-                {
-                    count = m_ProximityContent.Count;
-                }
-
+                int count = ProximityContent.Count;
                 int cap = ContentCapacity - 1;
                 for(; count-- > cap;)
                 {
-                    lock(m_ProximityContentLock)
-                    {
-                        m_ProximityContent.RemoveAt(0);
-                    }
+                    ProximityContent.RemoveAt(0);
                 }
 
-                lock(m_ProximityContentLock)
-                {
-                    m_ProximityContent.Add(data);
-                }
+                ProximityContent.Add(data);
 
                 break;
             }
@@ -135,16 +135,12 @@ public class Main : MonoBehaviourSingleton
 
         data = new ProximityData(data.Distance, data.Angle - 90f);
         Vector3 crossProduct = MathTools.CrossProduct(data.Direction, m_Origin.Direction);
-        lock(m_ProximityContent)
+        if((m_LastCrossProduct.z < 0f && crossProduct.z >= 0f) || (m_LastCrossProduct.z > 0f && crossProduct.z <= 0f))
         {
-            if((m_LastCrossProduct.z < 0f && crossProduct.z >= 0f) || (m_LastCrossProduct.z > 0f && crossProduct.z <= 0f))
-            {
-                m_ProximityContent.Clear();
-            }
-
-            m_ProximityContent.Add(data);
+            ProximityContent.Clear();
         }
 
+        ProximityContent.Add(data);
         m_LastCrossProduct = crossProduct;
     }
 
@@ -155,39 +151,33 @@ public class Main : MonoBehaviourSingleton
         data = new ProximityData(data.Distance, data.Angle - 90f);
         int direction = MathTools.Sign(data.Angle - m_LastAngle);
 
-        lock(m_ProximityContent)
+        if(direction != m_LastDirection)
         {
-            if(direction != m_LastDirection)
-            {
-                m_ProximityContent.Clear();
-                m_LastDirection = direction;
-            }
-
-            m_ProximityContent.Add(data);
+            ProximityContent.Clear();
+            m_LastDirection = direction;
         }
 
+        ProximityContent.Add(data);
         m_LastAngle = data.Angle;
     }
 
     private void OnDrawGizmos()
     {
-        if(m_ProximityContent.Count <= 1)
+        if(ProximityContent.Count <= 1)
             return;
 
+        int count = ProximityContent.Count;
         ProximityData lastInput;
-        lock(m_ProximityContent)
+        Gizmos.color = Color.red;
+        for(int i = 1; i < count; i++)
         {
-            Gizmos.color = Color.red;
-            for(int i = 1; i < m_ProximityContent.Count; i++)
-            {
-                if(m_ProximityContent[i].Distance < 0f)
-                    continue;
+            if(ProximityContent[i].Distance < 0f)
+                continue;
 
-                Gizmos.DrawLine(m_ProximityContent[i - 1].Position * m_Scale, m_ProximityContent[i].Position * m_Scale);
-            }
-
-            lastInput = m_ProximityContent[m_ProximityContent.Count - 1];
+            Gizmos.DrawLine(ProximityContent[i - 1].Position * m_Scale, ProximityContent[i].Position * m_Scale);
         }
+
+        lastInput = ProximityContent[ProximityContent.Count - 1];
 
         Gizmos.color = Color.yellow;
         //Gizmos.DrawLine(Vector3.zero, m_Data[m_Data.Count - 1].Position.normalized * 5f);
