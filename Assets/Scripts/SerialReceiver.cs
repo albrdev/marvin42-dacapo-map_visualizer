@@ -14,7 +14,6 @@ public static class SerialReceiver
 
     private static SerialPort s_SerialPort;
     private static Thread s_ReceivingThread;
-    private static bool s_IsActive = false;
 
     private static byte[] s_ReadBuffer = new byte[512];
     private static int s_PacketSuccessCount = 0;
@@ -91,27 +90,24 @@ public static class SerialReceiver
         {
             lock(s_IsActiveLock)
             {
-                return s_IsActive;
+                return s_ReceivingThread.IsAlive;
             }
         }
+
         private set
         {
             lock(s_IsActiveLock)
             {
-                if(value == s_IsActive)
+                if(value == s_ReceivingThread.IsAlive)
                     return;
 
-                s_IsActive = value;
-                if(s_IsActive)
+                if(value)
                 {
                     s_ReceivingThread.Start();//*
                 }
                 else
                 {
-                    if(s_ReceivingThread.IsAlive)
-                    {
-                        s_ReceivingThread.Join();//*
-                    }
+                    s_ReceivingThread.Join();//*
                 }
             }
         }
@@ -177,10 +173,13 @@ public static class SerialReceiver
 
     public static void Begin(string portName, SerialPortSettings settings, int updateInterval = 0)
     {
-        if(SerialPort.IsOpen)
+        if(SerialPort != null && SerialPort.IsOpen)
             return;
 
-        s_ReceivingThread = new Thread(Poll);
+        lock(s_IsActiveLock)
+        {
+            s_ReceivingThread = new Thread(Poll);
+        }
 
         SerialPort = new SerialPort();
 
@@ -274,6 +273,15 @@ public static class SerialReceiver
             {
                 if(SerialPort.BytesToRead <= 0 || SerialPort.BytesToRead < Settings.ReceivedBytesThreshold/*SerialPort.ReceivedBytesThreshold*/)
                     continue;
+
+                if(s_ReadOffset >= s_ReadBuffer.Length)
+                {
+                    // Should/could only happen if packet received claims it has an abnormally large data size. This could happen if:
+                    //   * Intentional buffer overflow attack / client uncautiously sending too large data
+                    //   * The buffer on the server side is smaller than the packet that is currently receiving
+                    DebugTools.Print($"Buffer overflow: offset={s_ReadOffset}, max={s_ReadBuffer.Length}");
+                    s_ReadOffset = 0; // Ignore this rubbish
+                }
 
                 int readSize = SerialPort.Read(s_ReadBuffer, s_ReadOffset, s_ReadBuffer.Length - s_ReadOffset);
                 readSize += s_ReadOffset;
