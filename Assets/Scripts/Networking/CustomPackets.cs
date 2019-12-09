@@ -7,10 +7,11 @@ namespace Assets.Scripts.Networking
     {
         public enum Type : byte
         {
-            Status = Packet.Type.Max,
+            MotorStop = Packet.Type.Max,
+            MotorBalance,
+            Direction,
+            MotorPower,
             MotorRun,
-            MotorStop,
-            MotorJSData,
             OrientationData,
             ProximityData
         }
