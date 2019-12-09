@@ -30,6 +30,6 @@ public class PacketStatsInfoPanel : InfoPanelBase
         m_SuccessCountValue.text = SerialReceiver.PacketSuccessCount.ToString();
         m_FailCountValue.text = SerialReceiver.PacketFailCount.ToString();
         m_SuccessRatioValue.text = (SerialReceiver.PacketSuccessRatio * 100f).ToString("n2") + "%";
-        m_FailRatioValue.text = (SerialReceiver.PacketSuccessRatio * 100f).ToString("n2") + "%";
+        m_FailRatioValue.text = (SerialReceiver.PacketFailRatio * 100f).ToString("n2") + "%";
     }
 }
