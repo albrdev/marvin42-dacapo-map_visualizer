@@ -17,19 +17,22 @@ public class Main : MonoBehaviourSingleton
     [SerializeField]
     private SerialPortSettings m_Settings = SerialPortSettings.Default; // Baud rates: 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200
     [SerializeField]
-    private int m_UpdateInterval = 0;
-
+    private float m_DistanceThreshold = 0f;
+    [SerializeField]
+    private Vector3 m_DrawOrigin = Vector3.zero;
     [SerializeField]
     private float m_Scale = 1f;
-
-    private const int ContentCapacity = 360 * 10;
+    [SerializeField]
+    private int m_ContentCapacity = 360 * 10;
+    [SerializeField]
+    private int m_UpdateInterval = 0;
 
     [SerializeField, ReadOnlyProperty]
     private OrientationData m_Orientation;
     [SerializeField, ReadOnlyProperty]
-    private List<ProximityData> m_ProximityContent = new List<ProximityData>(ContentCapacity);
+    private List<ProximityData>[] m_ProximityContent;
 
-    private IList<ProximityData> ProximityContent
+    private IList<ProximityData>[] ProximityContent
     {
         get
         {
@@ -78,14 +81,20 @@ public class Main : MonoBehaviourSingleton
                 ProximityData data = *((CustomPackets.ProximityDataPacket*)header);
                 DebugTools.Print($"DATA: {data}");
 
-                int count = ProximityContent.Count;
-                int cap = ContentCapacity - 1;
-                for(; count-- > cap;)
+                if(data.ID < 0 || data.ID >= ProximityContent.Length)
                 {
-                    ProximityContent.RemoveAt(0);
+                    DebugTools.Print($"Invalid sensor index ID: {data.ID}");
+                    return;
                 }
 
-                ProximityContent.Add(data);
+                int count = ProximityContent[data.ID].Count;
+                int cap = m_ContentCapacity - 1;
+                for(; count-- > cap;)
+                {
+                    ProximityContent[data.ID].RemoveAt(0);
+                }
+
+                ProximityContent[data.ID].Add(data);
 
                 break;
             }
@@ -101,6 +110,12 @@ public class Main : MonoBehaviourSingleton
     protected override void Awake()
     {
         base.Awake();
+
+        m_ProximityContent = new List<ProximityData>[2]
+        {
+            new List<ProximityData>(m_ContentCapacity),
+            new List<ProximityData>(m_ContentCapacity)
+        };
 
         unsafe
         {
@@ -125,7 +140,7 @@ public class Main : MonoBehaviourSingleton
     ProximityData m_Origin;
     Vector3 m_LastCrossProduct;
     bool m_InitialCall = true;
-    private void RevolutionUpdate(ProximityData data)
+    /*private void RevolutionUpdate(ProximityData data)
     {
         if(m_InitialCall)
         {
@@ -142,47 +157,62 @@ public class Main : MonoBehaviourSingleton
 
         ProximityContent.Add(data);
         m_LastCrossProduct = crossProduct;
-    }
+    }*/
 
     float m_LastAngle = 0f;
     int m_LastDirection = 0;
     private void OscillationUpdate(ProximityData data)
     {
-        data = new ProximityData(data.Distance, data.Angle - 90f);
+        data = new ProximityData(data.ID, data.Distance, data.Angle - 90f);
         int direction = MathTools.Sign(data.Angle - m_LastAngle);
 
         if(direction != m_LastDirection)
         {
-            ProximityContent.Clear();
+            for(int i = 0; i < ProximityContent.Length; i++)
+            {
+                ProximityContent[i].Clear();
+                ProximityContent[i].Add(data);
+            }
+
             m_LastDirection = direction;
         }
 
-        ProximityContent.Add(data);
         m_LastAngle = data.Angle;
+    }
+
+    private void DrawSensorData(IList<ProximityData> list, Vector3 origin)
+    {
+        Gizmos.color = Color.red;
+        for(int j = 1; j < list.Count; j++)
+        {
+            if(list[j].Distance < 0f)
+                continue;
+
+            Gizmos.DrawLine((origin + list[j - 1].Position) * m_Scale, (origin + list[j].Position) * m_Scale);
+        }
     }
 
     private void OnDrawGizmos()
     {
-        if(ProximityContent.Count <= 1)
+        if(ProximityContent == null)
             return;
 
-        int count = ProximityContent.Count;
-        ProximityData lastInput;
-        Gizmos.color = Color.red;
-        for(int i = 1; i < count; i++)
+        for(int i = 0; i < ProximityContent.Length; i++)
         {
-            if(ProximityContent[i].Distance < 0f)
+            if(ProximityContent[i].Count <= 1)
                 continue;
 
-            Gizmos.DrawLine(ProximityContent[i - 1].Position * m_Scale, ProximityContent[i].Position * m_Scale);
+            Vector3 h = m_DrawOrigin / 2;
+            ProximityData lastInput;
+            DrawSensorData(ProximityContent[i], h);
+
+            lastInput = ProximityContent[i][ProximityContent[i].Count - 1];
+
+            Gizmos.color = Color.yellow;
+            //Gizmos.DrawLine(Vector3.zero, m_Data[m_Data.Count - 1].Position.normalized * 5f);
+            Gizmos.DrawLine(m_DrawOrigin, (h + lastInput.Position) * m_Scale);
+            //Gizmos.color = Color.yellow.SetA(0.5f);
+            //Gizmos.DrawLine((m_DrawOrigin + lastInput.Position) * m_Scale, (m_DrawOrigin + lastInput.Position.normalized) * (5f * m_Scale));
         }
-
-        lastInput = ProximityContent[ProximityContent.Count - 1];
-
-        Gizmos.color = Color.yellow;
-        //Gizmos.DrawLine(Vector3.zero, m_Data[m_Data.Count - 1].Position.normalized * 5f);
-        Gizmos.DrawLine(Vector3.zero, lastInput.Position * m_Scale);
-        Gizmos.color = Color.yellow.SetA(0.5f);
-        Gizmos.DrawLine(lastInput.Position * m_Scale, lastInput.Position.normalized * (5f * m_Scale));
     }
 }
