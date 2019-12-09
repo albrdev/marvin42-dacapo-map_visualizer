@@ -652,7 +652,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 0, y: 2.0089e-41, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
@@ -778,7 +778,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_COMPortName: COM23
   m_Settings:
-    m_BaudRate: 115200
+    m_BaudRate: 9600
     m_Parity: 0
     m_DataBits: 8
     m_StopBits: 1
@@ -788,12 +788,14 @@ MonoBehaviour:
     m_ReceivedBytesThreshold: 1
     m_ReadTimeout: -1
     m_WriteTimeout: -1
+  m_DistanceThreshold: 0.04
+  m_DrawOrigin: {x: 0, y: 1, z: 0}
+  m_Scale: 2.5
+  m_ContentCapacity: 360
   m_UpdateInterval: 0
-  m_Scale: 5
   m_Orientation:
     m_Velocity: 0
     m_Rotation: {x: 0, y: 0, z: 0, w: 0}
-  m_ProximityContent: []
 --- !u!4 &798237944
 Transform:
   m_ObjectHideFlags: 0
@@ -1814,7 +1816,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1542988377
 RectTransform:
   m_ObjectHideFlags: 0
