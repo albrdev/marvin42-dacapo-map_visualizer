@@ -14,6 +14,7 @@ public static class SerialReceiver
 
     private static SerialPort s_SerialPort;
     private static Thread s_ReceivingThread;
+    private static bool s_ThreadActive = false;
 
     private static byte[] s_ReadBuffer = new byte[512];
     private static int s_PacketSuccessCount = 0;
@@ -25,7 +26,8 @@ public static class SerialReceiver
     private static readonly object s_SerialPortLock = new object();
     private static readonly object s_SettingsLock = new object();
     private static readonly object s_UpdateIntervalLock = new object();
-    private static readonly object s_IsActiveLock = new object();
+    private static readonly object s_ReceivingThreadLock = new object();
+    private static readonly object s_ThreadActiveLock = new object();
     private static readonly object s_PacketSuccessCountLock = new object();
     private static readonly object s_PacketFailCountLock = new object();
 
@@ -84,31 +86,65 @@ public static class SerialReceiver
         }
     }
 
+    private static Thread ReceivingThread
+    {
+        get
+        {
+            lock(s_ReceivingThreadLock)
+            {
+                return s_ReceivingThread;
+            }
+        }
+
+        set
+        {
+            lock(s_ReceivingThreadLock)
+            {
+                s_ReceivingThread = value;
+            }
+        }
+    }
+
+    private static bool ThreadActive
+    {
+        get
+        {
+            lock(s_ThreadActiveLock)
+            {
+                return s_ThreadActive;
+            }
+        }
+
+        set
+        {
+            lock(s_ThreadActiveLock)
+            {
+                s_ThreadActive = value;
+            }
+        }
+    }
+
     public static bool IsActive
     {
         get
         {
-            lock(s_IsActiveLock)
-            {
-                return s_ReceivingThread.IsAlive;
-            }
+            return ReceivingThread.IsAlive;
         }
 
         private set
         {
-            lock(s_IsActiveLock)
-            {
-                if(value == s_ReceivingThread.IsAlive)
-                    return;
+            if(value == ReceivingThread.IsAlive)
+                return;
 
-                if(value)
-                {
-                    s_ReceivingThread.Start();//*
-                }
-                else
-                {
-                    s_ReceivingThread.Join();//*
-                }
+            if(value)
+            {
+                ThreadActive = true;
+                ReceivingThread.Start();//*
+            }
+            else
+            {
+                ThreadActive = false;
+                ReceivingThread.Join();//*
             }
         }
     }
@@ -176,11 +212,7 @@ public static class SerialReceiver
         if(SerialPort != null && SerialPort.IsOpen)
             return;
 
-        lock(s_IsActiveLock)
-        {
-            s_ReceivingThread = new Thread(Poll);
-        }
-
+        ReceivingThread = new Thread(Poll);
         SerialPort = new SerialPort();
 
         Settings = settings;
@@ -199,7 +231,7 @@ public static class SerialReceiver
 
         //SerialPort.DataReceived += new SerialDataReceivedEventHandler(OnDataReceived);//*
 
-        s_UpdateInterval = updateInterval;
+        UpdateInterval = updateInterval;
 
         SerialPort.Open();
         IsActive = true;
@@ -267,7 +299,7 @@ public static class SerialReceiver
     private static int s_ReadOffset = 0;
     private static void Poll()
     {
-        while(IsActive)
+        while(ThreadActive)
         {
             try
             {
@@ -327,7 +359,7 @@ public static class SerialReceiver
             }
             catch(TimeoutException) { }
 
-            Thread.Sleep(s_UpdateInterval);
+            Thread.Sleep(UpdateInterval);
         }
     }
 }
