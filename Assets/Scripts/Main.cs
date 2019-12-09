@@ -180,6 +180,9 @@ public class Main : MonoBehaviourSingleton
             Gizmos.color = Color.red;
             for(int i = 1; i < m_ProximityContent.Count; i++)
             {
+                if(m_ProximityContent[i].Distance < 0f)
+                    continue;
+
                 Gizmos.DrawLine(m_ProximityContent[i - 1].Position * m_Scale, m_ProximityContent[i].Position * m_Scale);
             }
 
