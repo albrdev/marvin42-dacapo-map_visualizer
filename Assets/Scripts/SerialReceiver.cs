@@ -16,7 +16,7 @@ public static class SerialReceiver
     private static Thread s_ReceivingThread;
     private static bool s_ThreadActive = false;
 
-    private static byte[] s_ReadBuffer = new byte[512];
+    private static byte[] s_ReadBuffer = new byte[128];
     private static int s_PacketSuccessCount = 0;
     private static int s_PacketFailCount = 0;
 
