@@ -121,9 +121,6 @@ public class Main : MonoBehaviourSingleton
         {
             SerialReceiver.OnPacketReceivedEvent = PacketReceived;
         }
-
-        //SerialReceiver.OnUpdate += RevolutionUpdate;
-        //SerialReceiver.OnUpdate += OscillationUpdate;
     }
 
     private void Start()
@@ -135,49 +132,6 @@ public class Main : MonoBehaviourSingleton
     {
         SerialReceiver.End();
         base.OnDestroy();
-    }
-
-    ProximityData m_Origin;
-    Vector3 m_LastCrossProduct;
-    bool m_InitialCall = true;
-    /*private void RevolutionUpdate(ProximityData data)
-    {
-        if(m_InitialCall)
-        {
-            m_Origin = data;
-            m_InitialCall = false;
-        }
-
-        data = new ProximityData(data.Distance, data.Angle - 90f);
-        Vector3 crossProduct = MathTools.CrossProduct(data.Direction, m_Origin.Direction);
-        if((m_LastCrossProduct.z < 0f && crossProduct.z >= 0f) || (m_LastCrossProduct.z > 0f && crossProduct.z <= 0f))
-        {
-            ProximityContent.Clear();
-        }
-
-        ProximityContent.Add(data);
-        m_LastCrossProduct = crossProduct;
-    }*/
-
-    float m_LastAngle = 0f;
-    int m_LastDirection = 0;
-    private void OscillationUpdate(ProximityData data)
-    {
-        data = new ProximityData(data.ID, data.Distance, data.Angle - 90f);
-        int direction = MathTools.Sign(data.Angle - m_LastAngle);
-
-        if(direction != m_LastDirection)
-        {
-            for(int i = 0; i < ProximityContent.Length; i++)
-            {
-                ProximityContent[i].Clear();
-                ProximityContent[i].Add(data);
-            }
-
-            m_LastDirection = direction;
-        }
-
-        m_LastAngle = data.Angle;
     }
 
     private void DrawSensorData(IList<ProximityData> list, Vector3 origin)
