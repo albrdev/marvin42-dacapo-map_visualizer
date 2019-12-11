@@ -12,6 +12,7 @@ namespace Assets.Scripts.Networking
             Direction,
             MotorPower,
             MotorRun,
+            MotorRotation,
             OrientationData,
             ProximityData
         }
