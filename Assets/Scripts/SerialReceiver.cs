@@ -16,7 +16,7 @@ public static class SerialReceiver
     private static Thread s_ReceivingThread;
     private static bool s_ThreadActive = false;
 
-    private static byte[] s_ReadBuffer = new byte[128];
+    private static byte[] s_ReadBuffer = new byte[512 + 1];
     private static int s_PacketSuccessCount = 0;
     private static int s_PacketFailCount = 0;
 
@@ -299,6 +299,7 @@ public static class SerialReceiver
     private static int s_ReadOffset = 0;
     private static void Poll()
     {
+        int bufferSize = s_ReadBuffer.Length - 1;
         while(ThreadActive)
         {
             try
@@ -306,39 +307,39 @@ public static class SerialReceiver
                 if(SerialPort.BytesToRead <= 0 || SerialPort.BytesToRead < Settings.ReceivedBytesThreshold/*SerialPort.ReceivedBytesThreshold*/)
                     continue;
 
-                if(s_ReadOffset >= s_ReadBuffer.Length)
+                if(s_ReadOffset >= bufferSize)
                 {
                     // Should/could only happen if packet received claims it has an abnormally large data size. This could happen if:
                     //   * Intentional buffer overflow attack / client uncautiously sending too large data
                     //   * The buffer on the server side is smaller than the packet that is currently receiving
-                    DebugTools.Print($"Buffer overflow: offset={s_ReadOffset}, max={s_ReadBuffer.Length}");
+                    DebugTools.Print($"Buffer overflow: offset={s_ReadOffset}, max={bufferSize}");
                     s_ReadOffset = 0; // Ignore this rubbish
                 }
 
-                int readSize = SerialPort.Read(s_ReadBuffer, s_ReadOffset, s_ReadBuffer.Length - s_ReadOffset);
+                int readSize = SerialPort.Read(s_ReadBuffer, s_ReadOffset, bufferSize - s_ReadOffset);
                 readSize += s_ReadOffset;
                 s_ReadOffset = 0;
 
                 DebugTools.Print("BUFFER BEGIN");
                 int indexOffset = 0;
-                int increment = 0;
+                int incrementSize = 0;
                 while(indexOffset + Marshal.SizeOf<Packet.Header>() <= readSize)
                 {
                     unsafe
                     {
                         fixed(byte* offset = &s_ReadBuffer[indexOffset], end = &s_ReadBuffer[readSize])
                         {
-                            if(!HandlePacket(offset, end, out increment))
+                            if(!HandlePacket(offset, end, out incrementSize))
                             {
                                 break;
                             }
                         }
                     }
 
-                    indexOffset += increment;
+                    indexOffset += incrementSize;
                 }
 
-                if(increment < 0)
+                if(incrementSize < 0)
                 {
                     DebugTools.Print("BUFFER ERROR\n");
                     PacketFailCount++;
