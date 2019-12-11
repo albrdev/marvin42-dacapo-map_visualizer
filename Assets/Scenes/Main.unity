@@ -652,7 +652,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 2.0089e-41, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
@@ -776,7 +776,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 68ac03c004c77a744ad2597de1785949, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_COMPortName: COM23
+  m_COMPortName: COM10
   m_Settings:
     m_BaudRate: 9600
     m_Parity: 0
