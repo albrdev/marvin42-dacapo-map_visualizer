@@ -791,7 +791,7 @@ MonoBehaviour:
   m_DistanceThreshold: 0.04
   m_DrawOrigin: {x: 0, y: 1, z: 0}
   m_Scale: 2.5
-  m_ContentCapacity: 360
+  m_ContentCapacity: 36
   m_UpdateInterval: 0
   m_Orientation:
     m_Velocity: 0
