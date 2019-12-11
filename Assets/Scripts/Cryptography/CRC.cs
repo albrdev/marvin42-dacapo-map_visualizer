@@ -4,7 +4,7 @@ namespace Assets.Scripts.Cryptography.CRC
 {
     public static class CRC16
     {
-        private unsafe static UInt16 CRC16Update(UInt16 crc, byte a)
+        private unsafe static UInt16 Update(UInt16 crc, byte a)
         {
             byte i;
 
@@ -22,7 +22,7 @@ namespace Assets.Scripts.Cryptography.CRC
             UInt16 result = 0;
             for(Int32 i = 0; i < size; i++)
             {
-                result = CRC16Update(result, data[i]);
+                result = Update(result, data[i]);
             }
 
             return result;
