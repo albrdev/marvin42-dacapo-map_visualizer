@@ -8,10 +8,12 @@ namespace Assets.Scripts.Networking
     {
         public enum Type : Byte
         {
-            False   = 0,
-            True    = 1,
-            Debug   = 2,
-            Max     = 3,
+            False       = 0,
+            True        = 1,
+            SYN         = 2,
+            ACK         = 3,
+            Unspecified = 4,
+            Max         = 5,
         }
 
         public static unsafe bool VerifyHeader(Header* pkt)
